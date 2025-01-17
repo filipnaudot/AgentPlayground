@@ -13,7 +13,7 @@ client = OpenAI()
 
 
 
-class LLMAgent:
+class OpenAIAgent:
     """
     An agent that uses OpenAI's function calling to decide and execute actions.
     """
