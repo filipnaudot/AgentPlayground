@@ -1,8 +1,6 @@
 import random
 import base64
-import json
 import time
-from io import BytesIO
 from openai import OpenAI
 
 
