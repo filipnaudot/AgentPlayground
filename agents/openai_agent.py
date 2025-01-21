@@ -86,7 +86,32 @@ class OpenAIAgent:
             }
         }
     ]
+        
 
+    def generate(self, system_message: dict, user_message_content: str, base64_image: str):
+        completion = client.chat.completions.create(
+            model=self.model_name,
+            messages=[
+                system_message,
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": user_message_content,
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
+                        },
+                    ],
+                }
+            ],
+            tools=self.tools,
+            tool_choice="required",
+        )
+
+        return completion.choices[0].message.tool_calls[0].function.name
 
 
     def step(self, world: str = None, steps_taken=0):
@@ -129,55 +154,14 @@ class OpenAIAgent:
         else:
             system_message = img_system_message
 
-        # Call the OpenAI API
+        function_name = self.generate(system_message, user_message_content, base64_image)
+        print(f"FUNCTION: {function_name}\n\n")
 
-        # completion = client.chat.completions.create(
-        #     model="gpt-4o",
-        #     messages = [
-        #         system_message,
-        #         {"role": "user", "content": user_message_content}
-        #     ],
-        #     tools=self.tools,
-        #     tool_choice="required",
-        # )
-        completion = client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                system_message,
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": user_message_content,
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
-                        },
-                    ],
-                }
-            ],
-            tools=self.tools,
-            tool_choice="required",
-        )
-
-        function_name = completion.choices[0].message.tool_calls[0].function.name
-        print(f"\n\n\n{function_name}\n\n\n")
-        if function_name:
-            if function_name == "move_up":
-                self.game.move_up()
-            elif function_name == "move_down":
-                self.game.move_down()
-            elif function_name == "move_left":
-                self.game.move_left()
-            elif function_name == "move_right":
-                self.game.move_right()
-            else:
-                print(f"Unknown function: {function_name}. Falling back to random action.")
-                self.execute_random_action()
+        method = getattr(self.game, function_name, None)
+        if callable(method):
+            method()
         else:
-            print("No function call returned. Falling back to random action.")
+            print(f"Unknown function: {function_name}. Falling back to random action.")
             self.execute_random_action()
 
 
